@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Review – {{ doc.filename }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .review-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    height: calc(100vh - 200px);
+    min-height: 400px;
+  }
+  .pane {
+    border: 1px solid var(--pico-muted-border-color, #ccc);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pane-header {
+    background: var(--pico-secondary-background, #f3f4f6);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--pico-muted-border-color, #ccc);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pane-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+  .pane-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  .pane-body pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.8rem;
+    margin: 0;
+  }
+  .converter-tabs {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    padding: 0.25rem 0.75rem;
+    background: var(--pico-secondary-background, #f3f4f6);
+    border-bottom: 1px solid var(--pico-muted-border-color, #ccc);
+  }
+  .tab-btn {
+    padding: 0.2rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: white;
+  }
+  .tab-btn.active { background: var(--pico-primary, #1d4ed8); color: white; border-color: transparent; }
+  .tab-panel { display: none; height: 100%; }
+  .tab-panel.active { display: block; height: 100%; }
+  .score-form { padding: 0.75rem; border-top: 1px solid #eee; font-size: 0.85rem; }
+  .score-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+  .radio-group { display: flex; gap: 0.25rem; }
+  .radio-group label { cursor: pointer; border: 1px solid #ccc; border-radius: 4px; padding: 0.1rem 0.4rem; }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + label { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+  .fmt-filter { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
+  <div>
+    <a href="/doc/{{ doc.id }}">← Results</a>
+    <h1 style="margin:0.25rem 0 0;">Review: {{ doc.filename }}</h1>
+  </div>
+</div>
+
+<!-- Format filter -->
+{% if available_formats %}
+<div class="fmt-filter">
+  <span class="section-label">Filter by format:</span>
+  <a href="/doc/{{ doc.id }}/review" role="button" class="outline {% if not fmt_filter %}contrast{% endif %}" style="font-size:0.8rem; padding:0.2rem 0.6rem;">All</a>
+  {% for f in available_formats %}
+    <a href="/doc/{{ doc.id }}/review?fmt={{ f }}" role="button" class="outline {% if fmt_filter == f %}contrast{% endif %}" style="font-size:0.8rem; padding:0.2rem 0.6rem;">{{ f }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not grouped %}
+  <p>No conversions to review yet. <a href="/doc/{{ doc.id }}">Run some converters first.</a></p>
+{% endif %}
+
+{% for fmt, convs in grouped.items() %}
+<h2 style="margin-top:1rem;">Format: <code>{{ fmt }}</code></h2>
+
+<div class="review-layout">
+  <!-- Left pane: original file -->
+  <div class="pane">
+    <div class="pane-header">Original</div>
+    <div class="pane-body">
+      {% if doc.file_ext == '.pdf' %}
+        <iframe src="/uploads/{{ doc.filename }}" title="Original PDF"></iframe>
+      {% else %}
+        <p style="color:#6b7280; padding:1rem;">Preview not available for <code>{{ doc.file_ext }}</code> files.<br>
+        File: <code>{{ doc.file_path }}</code></p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right panes: converter outputs (tabs if > 2) -->
+  {% set tab_mode = convs | length > 2 %}
+  <div class="pane" style="grid-column: span 2;">
+    <div class="pane-header">
+      Converter Outputs
+      <span class="section-label">{{ fmt }}</span>
+    </div>
+    {% if tab_mode %}
+    <div class="converter-tabs">
+      {% for c in convs %}
+        <button class="tab-btn {% if loop.first %}active{% endif %}"
+                onclick="showTab('tab-{{ fmt }}-{{ c.id }}', this)">
+          {{ c.converter_name }}
+          {% if c.error %}<span style="color:#ef4444;">✗</span>{% elif c.content %}<span style="color:#22c55e;">✓</span>{% endif %}
+        </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="pane-body" style="padding: {% if tab_mode %}0{% else %}0.75rem{% endif %}; overflow-y: auto;">
+      {% for c in convs %}
+      <div class="tab-panel {% if not tab_mode or loop.first %}active{% endif %}"
+           id="tab-{{ fmt }}-{{ c.id }}"
+           style="{% if not tab_mode %}display:block;{% endif %} padding: {% if tab_mode %}0.75rem{% else %}0{% endif %};">
+        {% if not tab_mode %}<strong>{{ c.converter_name }}</strong> · {% endif %}
+        <small style="color:#6b7280;">{{ c.duration_ms }}ms</small>
+        {% if c.error %}
+          <p style="color:#ef4444;"><strong>Error:</strong> {{ c.error }}</p>
+        {% elif c.content %}
+          {% if fmt == 'markdown' %}
+            <div class="rendered-md">{{ c.content | render_content('markdown') | safe }}</div>
+          {% elif fmt == 'html' %}
+            <iframe srcdoc="{{ c.content | e }}" style="width:100%; height:400px; border:none;"></iframe>
+          {% elif fmt == 'json' %}
+            <pre><code>{{ c.content }}</code></pre>
+          {% else %}
+            <pre>{{ c.content }}</pre>
+          {% endif %}
+        {% else %}
+          <p style="color:#9ca3af;">No output.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Scoring form for this format -->
+<form method="post" action="/doc/{{ doc.id }}/score" class="score-form" style="margin-top:0.5rem; border:1px solid #eee; border-radius:6px; padding:1rem;">
+  <strong>Human scores for <code>{{ fmt }}</code></strong>
+  {% for c in convs %}
+  {% set cscores = score_map.get(c.id, {}) %}
+  {% set hs = cscores.get('human') %}
+  <div style="margin-top:0.75rem;">
+    <span><strong>{{ c.converter_name }}</strong></span>
+    <div class="score-row">
+      <span>Score:</span>
+      <div class="radio-group">
+        {% for val in [1,2,3,4,5] %}
+        <input type="radio" name="score_{{ c.id }}" id="score_{{ c.id }}_{{ val }}" value="{{ val }}"
+               {% if hs and hs.score == val %}checked{% endif %}>
+        <label for="score_{{ c.id }}_{{ val }}">{{ val }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="score-row">
+      <span>Notes:</span>
+      <input type="text" name="notes_{{ c.id }}" value="{{ hs.notes if hs and hs.notes else '' }}"
+             placeholder="Optional notes" style="flex:1; padding:0.2rem 0.4rem; font-size:0.85rem;">
+    </div>
+    {% if cscores.get('llm') %}
+      {% set ls = cscores['llm'] %}
+      <small style="color:#6b7280;">LLM score: <strong>{{ ls.score }}</strong>
+        {% if ls.rubric %}· {{ ls.rubric[:120] }}{% if ls.rubric|length > 120 %}…{% endif %}{% endif %}
+      </small>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" style="margin-top:0.75rem;">Save scores</button>
+</form>
+
+{% if not loop.last %}<hr style="margin:2rem 0;">{% endif %}
+{% endfor %}
+
+<script>
+function showTab(tabId, btn) {
+  // Find parent pane
+  const pane = btn.closest('.pane');
+  pane.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  pane.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

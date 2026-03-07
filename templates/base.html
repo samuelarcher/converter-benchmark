@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Converter Benchmark{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root { --spacing: 0.75rem; }
+    nav { padding: 0.5rem 1rem; }
+    .nav-brand { font-weight: bold; font-size: 1.1rem; text-decoration: none; color: inherit; }
+    .flash-messages { list-style: none; padding: 0; margin: 0.5rem 0; }
+    .flash-messages li { padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 0.25rem; }
+    .flash-success { background: #d1fae5; color: #065f46; }
+    .flash-error { background: #fee2e2; color: #991b1b; }
+    .flash-warning { background: #fef9c3; color: #92400e; }
+    .badge { display: inline-block; padding: 0.15em 0.5em; border-radius: 999px; font-size: 0.8em; font-weight: 600; }
+    .badge-ok { background: #d1fae5; color: #065f46; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .badge-skip { background: #f3f4f6; color: #6b7280; }
+    .score-pill { display: inline-block; width: 2em; text-align: center; font-weight: bold; border-radius: 4px; padding: 0.1em 0.3em; }
+    .score-1,.score-2 { background: #fee2e2; color: #991b1b; }
+    .score-3 { background: #fef9c3; color: #92400e; }
+    .score-4,.score-5 { background: #d1fae5; color: #065f46; }
+    main { padding: 1rem; }
+    .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="/" class="nav-brand">⚙ Converter Benchmark</a></li>
+    </ul>
+    <ul>
+      <li><a href="/">Documents</a></li>
+    </ul>
+  </nav>
+
+  <main class="container-fluid">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for cat, msg in messages %}
+            <li class="flash-{{ cat }}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

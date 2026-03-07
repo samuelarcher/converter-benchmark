@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.filename }} – Results{% endblock %}
+
+{% block extra_head %}
+<style>
+  .converter-table th, .converter-table td { padding: 0.4rem 0.6rem; }
+  .format-group { margin-bottom: 2rem; }
+  .run-form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+  .checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  label.conv-check { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+  <div>
+    <a href="/">← Documents</a>
+    <h1 style="margin:0.25rem 0 0;">{{ doc.filename }}</h1>
+    <small class="section-label">{{ doc.file_ext }} · uploaded {{ doc.created_at[:10] }}</small>
+  </div>
+</div>
+
+<!-- Run form -->
+<article style="margin-top:1rem;">
+  <header><strong>Run converters</strong></header>
+  <form method="post" action="/doc/{{ doc.id }}/run" class="run-form">
+    <div>
+      <span class="section-label">Converters</span>
+      <div class="checkboxes" style="margin-top:0.25rem;">
+        {% for conv in available_converters %}
+        <label class="conv-check">
+          <input type="checkbox" name="converters[]" value="{{ conv.name }}" checked>
+          {{ conv.label }}
+          {% if not conv.is_available() %}<em style="color:#aaa;">(unavailable)</em>{% endif %}
+        </label>
+        {% endfor %}
+        {% if not available_converters %}
+          <em>No converters support {{ doc.file_ext }}</em>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <span class="section-label">Output format</span><br>
+      <select name="output_format" style="margin-top:0.25rem;">
+        {% for fmt in output_formats %}
+          <option value="{{ fmt }}" {% if fmt == default_fmt %}selected{% endif %}>{{ fmt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit">Run</button>
+  </form>
+</article>
+
+<!-- LLM score + review buttons -->
+<div style="display:flex; gap:0.5rem; margin:0.5rem 0 1rem;">
+  <form method="post" action="/doc/{{ doc.id }}/llm-score">
+    <button type="submit" class="outline">Run LLM Scoring</button>
+  </form>
+  <a href="/doc/{{ doc.id }}/review" role="button" class="outline">Manual Review</a>
+</div>
+
+{% if not grouped %}
+  <p>No conversions yet. Use the form above to run converters.</p>
+{% endif %}
+
+{% for fmt, convs in grouped.items() %}
+<div class="format-group">
+  <h2>Format: <code>{{ fmt }}</code>
+    <a href="/doc/{{ doc.id }}/review?fmt={{ fmt }}" role="button" class="outline" style="font-size:0.8rem; margin-left:0.5rem;">Review {{ fmt }}</a>
+  </h2>
+  <div style="overflow-x:auto;">
+  <table class="converter-table">
+    <thead>
+      <tr>
+        <th>Converter</th>
+        <th>Status</th>
+        <th>Duration</th>
+        <th>LLM score</th>
+        <th>Human score</th>
+        <th>Preview</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in convs %}
+      {% set cscores = score_map.get(c.id, {}) %}
+      <tr>
+        <td>{{ c.converter_name }}</td>
+        <td>
+          {% if c.error %}
+            <span class="badge badge-err" title="{{ c.error }}">Error</span>
+          {% elif c.content %}
+            <span class="badge badge-ok">OK</span>
+          {% else %}
+            <span class="badge badge-skip">Empty</span>
+          {% endif %}
+        </td>
+        <td>{{ c.duration_ms }}ms</td>
+        <td>
+          {% if cscores.get('llm') %}
+            {% set ls = cscores['llm'] %}
+            <span class="score-pill score-{{ ls.score }}">{{ ls.score }}</span>
+            {% if ls.rubric %}
+              <details style="display:inline; font-size:0.75rem;">
+                <summary style="cursor:pointer; display:inline;">rubric</summary>
+                <pre style="font-size:0.7rem; background:#f9f9f9; padding:0.25rem; margin:0.25rem 0;">{{ ls.rubric }}</pre>
+              </details>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if cscores.get('human') %}
+            {% set hs = cscores['human'] %}
+            <span class="score-pill score-{{ hs.score }}">{{ hs.score }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if c.content %}
+            <a href="/doc/{{ doc.id }}/review?fmt={{ fmt }}" class="outline" role="button" style="font-size:0.8rem; padding:0.2rem 0.5rem;">View</a>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

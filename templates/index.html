@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Converter Benchmark – Documents{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+
+  <!-- Upload -->
+  <article>
+    <header><strong>Upload a file</strong></header>
+    <form method="post" action="/upload" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <button type="submit">Upload</button>
+    </form>
+  </article>
+
+  <!-- Folder scan -->
+  <article>
+    <header><strong>Scan a folder</strong></header>
+    <form method="post" action="/scan">
+      <input type="text" name="folder_path" placeholder="e.g. ~/Documents/test-files" style="width:100%">
+      <button type="submit">Scan</button>
+    </form>
+  </article>
+
+</div>
+
+<!-- Global format setting -->
+<article style="margin-top:1rem;">
+  <header><strong>Global default output format</strong></header>
+  <form method="post" action="/settings" style="display:flex; gap:0.5rem; align-items:center;">
+    <select name="default_output_format">
+      {% for fmt in output_formats %}
+        <option value="{{ fmt }}" {% if fmt == default_fmt %}selected{% endif %}>{{ fmt }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Save</button>
+  </form>
+  <small>Current default: <strong>{{ default_fmt }}</strong></small>
+</article>
+
+<!-- Documents table -->
+<h2 style="margin-top:1.5rem;">Documents ({{ docs|length }})</h2>
+{% if docs %}
+<div style="overflow-x:auto;">
+<table>
+  <thead>
+    <tr>
+      <th>Filename</th>
+      <th>Ext</th>
+      <th>Formats run</th>
+      <th>Conversions</th>
+      <th>Avg LLM score</th>
+      <th>Added</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in docs %}
+    <tr>
+      <td>{{ doc.filename }}</td>
+      <td><code>{{ doc.file_ext }}</code></td>
+      <td>
+        {% if doc.formats_run %}
+          {% for fmt in doc.formats_run.split(',') | unique %}
+            <span class="badge badge-skip">{{ fmt }}</span>
+          {% endfor %}
+        {% else %}—{% endif %}
+      </td>
+      <td>{{ doc.conversion_count or 0 }}</td>
+      <td>
+        {% if doc.avg_llm_score %}
+          {% set s = doc.avg_llm_score | round(1) %}
+          <span class="score-pill score-{{ s | int }}">{{ "%.1f"|format(doc.avg_llm_score) }}</span>
+        {% else %}—{% endif %}
+      </td>
+      <td style="white-space:nowrap;">{{ doc.created_at[:10] }}</td>
+      <td><a href="/doc/{{ doc.id }}" role="button" class="outline">View</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No documents yet. Upload a file or scan a folder above.</p>
+{% endif %}
+{% endblock %}
