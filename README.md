@@ -20,28 +20,38 @@ A developer tool for rapidly assessing open-source file conversion tools for acc
 | [Pandoc](https://pandoc.org) | markdown, html, text | `pandoc` CLI |
 | [LibreOffice](https://www.libreoffice.org) | markdown, html, text | `soffice` CLI |
 
+## Requirements
+
+- Python 3.13+
+- `pandoc` and/or `soffice` CLIs (optional — only needed for those converters)
+- An Anthropic API key (optional — only needed for LLM scoring)
+
 ## Setup
 
 ```bash
-# 1. Create and activate a virtual environment
+# 1. Clone the repository
+git clone https://github.com/samuelarcher/converter-benchmark.git
+cd converter-benchmark
+
+# 2. Create and activate a virtual environment
 python3.13 -m venv .venv
 source .venv/bin/activate
 
-# 2. Install dependencies
+# 3. Install dependencies
 pip install flask markdown anthropic markdownify pdfminer.six pdfplumber markitdown
 
-# 3. (Optional) Install system tools for full converter support
+# 4. (Optional) Install system tools for full converter support
 brew install pandoc libreoffice   # macOS
 # apt install pandoc libreoffice  # Debian/Ubuntu
 
-# 4. Set your Anthropic API key (required for LLM scoring)
+# 5. Set your Anthropic API key (required for LLM scoring)
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ## Running
 
 ```bash
-cd ~/benchmark
+cd converter-benchmark
 source .venv/bin/activate
 flask run
 ```
