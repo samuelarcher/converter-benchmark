@@ -33,8 +33,8 @@ A developer tool for rapidly assessing open-source file conversion tools for acc
 git clone https://github.com/samuelarcher/converter-benchmark.git
 cd converter-benchmark
 
-# 2. Create and activate a virtual environment
-python3.13 -m venv .venv
+# 2. Create and activate a virtual environment (assumes you have python3)
+python3 -m venv .venv
 source .venv/bin/activate
 
 # 3. Install dependencies
