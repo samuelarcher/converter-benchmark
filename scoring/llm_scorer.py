@@ -9,11 +9,21 @@ log = logging.getLogger(__name__)
 
 try:
     import anthropic
-    _CLIENT = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
     _AVAILABLE = True
 except Exception:
-    _CLIENT = None
     _AVAILABLE = False
+
+_CLIENT = None
+
+
+def _get_client():
+
+    global _CLIENT
+    if _CLIENT is None:
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        _CLIENT = anthropic.Anthropic(api_key=api_key)
+    
+    return _CLIENT
 
 MODEL = "claude-sonnet-4-6"
 
@@ -84,7 +94,7 @@ Each value must be an integer 1-5. No extra keys, no explanation outside JSON.
 Example: {{"content_completeness": 4, "readability": 3, "overall": 4}}"""
 
     try:
-        msg = _CLIENT.messages.create(
+        msg = _get_client().messages.create(
             model=MODEL,
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],

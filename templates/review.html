@@ -136,8 +136,13 @@
       <div class="tab-panel {% if not tab_mode or loop.first %}active{% endif %}"
            id="tab-{{ fmt }}-{{ c.id }}"
            style="{% if not tab_mode %}display:block;{% endif %} padding: {% if tab_mode %}0.75rem{% else %}0{% endif %};">
-        {% if not tab_mode %}<strong>{{ c.converter_name }}</strong> · {% endif %}
-        <small style="color:#6b7280;">{{ c.duration_ms }}ms</small>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <span>{% if not tab_mode %}<strong>{{ c.converter_name }}</strong> · {% endif %}
+          <small style="color:#6b7280;">{{ c.duration_ms }}ms</small></span>
+          {% if c.content %}
+          <a href="/conversion/{{ c.id }}/download" role="button" class="outline" style="font-size:0.75rem; padding:0.15rem 0.5rem;">Download</a>
+          {% endif %}
+        </div>
         {% if c.error %}
           <p style="color:#ef4444;"><strong>Error:</strong> {{ c.error }}</p>
         {% elif c.content %}

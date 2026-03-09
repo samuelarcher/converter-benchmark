@@ -39,12 +39,28 @@
 </article>
 
 <!-- Documents table -->
-<h2 style="margin-top:1.5rem;">Documents ({{ docs|length }})</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;">
+  <h2 style="margin:0;">Documents ({{ docs|length }})</h2>
+  {% if docs %}
+  <div style="display:flex; gap:0.5rem;">
+    <button type="submit" form="docs-form" class="outline secondary"
+            onclick="return document.querySelectorAll('#docs-form input[name=\'doc_ids[]\']:checked').length > 0 || (alert('No documents selected.'), false)">
+      Delete Selected
+    </button>
+    <form method="post" action="/docs/delete-all" onsubmit="return confirm('Delete all documents?')">
+      <button type="submit" class="outline secondary">Delete All</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
 {% if docs %}
+<form id="docs-form" method="post" action="/docs/delete-selected"
+      onsubmit="return confirm('Delete selected documents?')">
 <div style="overflow-x:auto;">
 <table>
   <thead>
     <tr>
+      <th><input type="checkbox" id="select-all" title="Select all"></th>
       <th>Filename</th>
       <th>Ext</th>
       <th>Formats run</th>
@@ -57,6 +73,7 @@
   <tbody>
     {% for doc in docs %}
     <tr>
+      <td><input type="checkbox" name="doc_ids[]" value="{{ doc.id }}"></td>
       <td>{{ doc.filename }}</td>
       <td><code>{{ doc.file_ext }}</code></td>
       <td>
@@ -74,12 +91,23 @@
         {% else %}—{% endif %}
       </td>
       <td style="white-space:nowrap;">{{ doc.created_at[:10] }}</td>
-      <td><a href="/doc/{{ doc.id }}" role="button" class="outline">View</a></td>
+      <td style="display:flex; gap:0.5rem;">
+        <a href="/doc/{{ doc.id }}" role="button" class="outline">View</a>
+        <form method="post" action="/doc/{{ doc.id }}/delete" onsubmit="return confirm('Delete {{ doc.filename }}?')">
+          <button type="submit" class="outline secondary">Delete</button>
+        </form>
+      </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 </div>
+</form>
+<script>
+  document.getElementById('select-all').addEventListener('change', function() {
+    document.querySelectorAll('#docs-form input[name="doc_ids[]"]').forEach(cb => cb.checked = this.checked);
+  });
+</script>
 {% else %}
 <p>No documents yet. Upload a file or scan a folder above.</p>
 {% endif %}
