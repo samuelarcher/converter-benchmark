@@ -6,7 +6,7 @@ from pathlib import Path
 
 from flask import (
     Flask, redirect, render_template, request, url_for, flash, abort,
-    send_from_directory
+    send_from_directory, Response
 )
 
 import db
@@ -14,6 +14,9 @@ from config import (
     OUTPUT_FORMATS, get_default_output_format, set_default_output_format
 )
 from converters import list_converters, get_converter
+
+import logging
+log = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path(__file__).parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -118,14 +121,19 @@ def scan():
     if not folder:
         flash("No folder path provided", "error")
         return redirect(url_for("index"))
+    
     p = Path(folder).expanduser()
     if not p.is_dir():
         flash(f"'{folder}' is not a directory", "error")
         return redirect(url_for("index"))
     exts = _all_extensions()
     added = 0
+    
+    log.info("Checking folder %s",folder)
+
     for f in p.rglob("*"):
         if f.suffix.lower() in exts and f.is_file():
+            log.info("Checking file %s",f)
             if not db.document_exists(str(f)):
                 db.insert_document(
                     filename=f.name,
@@ -238,6 +246,25 @@ def review(doc_id: int):
     )
 
 
+@app.route("/conversion/<int:conv_id>/download")
+def download_conversion(conv_id: int):
+    conv = db.get_conversion(conv_id)
+    if not conv or not conv["content"]:
+        abort(404)
+    doc = db.get_document(conv["document_id"])
+    ext_map = {"markdown": "md", "html": "html", "text": "txt", "json": "json"}
+    ext = ext_map.get(conv["output_format"], "txt")
+    mime_map = {"html": "text/html", "json": "application/json"}
+    mime = mime_map.get(conv["output_format"], "text/plain")
+    stem = Path(doc["filename"]).stem if doc else conv["converter_name"]
+    filename = f"{stem}.{ext}"
+    return Response(
+        conv["content"],
+        mimetype=mime,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.route("/doc/<int:doc_id>/score", methods=["POST"])
 def save_scores(doc_id: int):
     doc = db.get_document(doc_id)
@@ -260,6 +287,32 @@ def save_scores(doc_id: int):
                 saved += 1
     flash(f"Saved {saved} human score(s)", "success")
     return redirect(url_for("review", doc_id=doc_id))
+
+
+@app.route("/doc/<int:doc_id>/delete", methods=["POST"])
+def delete_doc(doc_id: int):
+    doc = db.get_document(doc_id)
+    if not doc:
+        abort(404)
+    db.delete_document(doc_id)
+    flash(f"Deleted '{doc['filename']}'", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/docs/delete-all", methods=["POST"])
+def delete_all_docs():
+    db.delete_all_documents()
+    flash("All documents deleted", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/docs/delete-selected", methods=["POST"])
+def delete_selected_docs():
+    ids = request.form.getlist("doc_ids[]")
+    for doc_id in ids:
+        db.delete_document(int(doc_id))
+    flash(f"Deleted {len(ids)} document(s)", "success")
+    return redirect(url_for("index"))
 
 
 @app.route("/doc/<int:doc_id>/llm-score", methods=["POST"])

@@ -195,6 +195,27 @@ def set_setting_raw(key: str, value: str):
         conn.commit()
 
 
+# --- delete ---
+
+def delete_document(doc_id: int):
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM scores WHERE conversion_id IN (SELECT id FROM conversions WHERE document_id = ?)",
+            (doc_id,),
+        )
+        conn.execute("DELETE FROM conversions WHERE document_id = ?", (doc_id,))
+        conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+        conn.commit()
+
+
+def delete_all_documents():
+    with get_conn() as conn:
+        conn.execute("DELETE FROM scores")
+        conn.execute("DELETE FROM conversions")
+        conn.execute("DELETE FROM documents")
+        conn.commit()
+
+
 # --- doc summary helpers ---
 
 def get_doc_summary():

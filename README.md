@@ -12,13 +12,14 @@ A developer tool for rapidly assessing open-source file conversion tools for acc
 
 ## Supported Converters
 
-| Converter | Formats | Requires |
-|-----------|---------|----------|
-| [MarkItDown](https://github.com/microsoft/markitdown) | markdown, text | Python package |
-| [pdfminer.six](https://github.com/pdfminer/pdfminer.six) | text | Python package |
-| [pdfplumber](https://github.com/jsvine/pdfplumber) | text, json | Python package |
-| [Pandoc](https://pandoc.org) | markdown, html, text | `pandoc` CLI |
-| [LibreOffice](https://www.libreoffice.org) | markdown, html, text | `soffice` CLI |
+| Converter | Formats | File Types | Requires |
+|-----------|---------|------------|----------|
+| [MarkItDown](https://github.com/microsoft/markitdown) | markdown, text | pdf, docx, pptx, xlsx, html, txt, csv, json, xml, epub, md, zip | Python package |
+| [Mammoth](https://github.com/mwilliamson/python-mammoth) | html, markdown | docx | Python package |
+| [pdfminer.six](https://github.com/pdfminer/pdfminer.six) | text | pdf | Python package |
+| [pdfplumber](https://github.com/jsvine/pdfplumber) | text, json | pdf | Python package |
+| [Pandoc](https://pandoc.org) | markdown, html, text | docx, odt, rtf, html, epub, tex, md, txt, rst | `pandoc` CLI |
+| [LibreOffice](https://www.libreoffice.org) | markdown, html, text | docx, odt, pptx, xlsx, html, txt, md, rtf | `soffice` CLI |
 
 ## Requirements
 
@@ -38,7 +39,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # 3. Install dependencies
-pip install flask markdown anthropic markdownify pdfminer.six pdfplumber markitdown
+pip install flask markdown anthropic markdownify pdfminer.six pdfplumber markitdown mammoth
 
 # 4. (Optional) Install system tools for full converter support
 brew install pandoc libreoffice   # macOS
